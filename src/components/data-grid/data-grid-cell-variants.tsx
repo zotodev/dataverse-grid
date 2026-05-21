@@ -33,6 +33,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useBadgeOverflow } from "@/hooks/use-badge-overflow";
+import {
+	useContainerSideOffset,
+	useSyncedState,
+} from "@/hooks/use-cell-sync";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import {
 	formatDateForDisplay,
@@ -41,7 +45,9 @@ import {
 	getCellKey,
 	getFileIcon,
 	getLineCount,
+	getSelectOptionLabel,
 	getUrlHref,
+	normalizeSelectValue,
 	parseLocalDate,
 } from "@/lib/data-grid";
 import { cn } from "@/lib/utils";
@@ -64,19 +70,16 @@ export function ShortTextCell<TData>({
 	readOnly,
 }: DataGridCellProps<TData>) {
 	const initialValue = cell.getValue() as string;
-	const [value, setValue] = React.useState(initialValue);
+	const [value, setValue] = useSyncedState(initialValue);
 	const cellRef = React.useRef<HTMLDivElement>(null);
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const prevIsEditingRef = React.useRef(false);
 
-	const prevInitialValueRef = React.useRef(initialValue);
-	if (initialValue !== prevInitialValueRef.current) {
-		prevInitialValueRef.current = initialValue;
-		setValue(initialValue);
+	React.useEffect(() => {
 		if (cellRef.current && !isEditing) {
 			cellRef.current.textContent = initialValue;
 		}
-	}
+	}, [initialValue, isEditing]);
 
 	const onBlur = React.useCallback(() => {
 		// Read the current value directly from the DOM to avoid stale state
@@ -226,17 +229,11 @@ export function LongTextCell<TData>({
 	readOnly,
 }: DataGridCellProps<TData>) {
 	const initialValue = cell.getValue() as string;
-	const [value, setValue] = React.useState(initialValue ?? "");
+	const [value, setValue] = useSyncedState(initialValue ?? "");
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const pendingCharRef = React.useRef<string | null>(null);
-	const sideOffset = -(containerRef.current?.clientHeight ?? 0);
-
-	const prevInitialValueRef = React.useRef(initialValue);
-	if (initialValue !== prevInitialValueRef.current) {
-		prevInitialValueRef.current = initialValue;
-		setValue(initialValue ?? "");
-	}
+	const sideOffset = useContainerSideOffset(containerRef);
 
 	const debouncedSave = useDebouncedCallback((newValue: string) => {
 		if (!readOnly) {
@@ -422,7 +419,7 @@ export function NumberCell<TData>({
 	readOnly,
 }: DataGridCellProps<TData>) {
 	const initialValue = cell.getValue() as number;
-	const [value, setValue] = React.useState(String(initialValue ?? ""));
+	const [value, setValue] = useSyncedState(String(initialValue ?? ""));
 	const inputRef = React.useRef<HTMLInputElement>(null);
 	const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -433,12 +430,6 @@ export function NumberCell<TData>({
 	const step = numberCellOpts?.step;
 
 	const prevIsEditingRef = React.useRef(false);
-
-	const prevInitialValueRef = React.useRef(initialValue);
-	if (initialValue !== prevInitialValueRef.current) {
-		prevInitialValueRef.current = initialValue;
-		setValue(String(initialValue ?? ""));
-	}
 
 	const onBlur = React.useCallback(() => {
 		const numValue = value === "" ? null : Number(value);
@@ -551,19 +542,16 @@ export function UrlCell<TData>({
 	readOnly,
 }: DataGridCellProps<TData>) {
 	const initialValue = cell.getValue() as string;
-	const [value, setValue] = React.useState(initialValue ?? "");
+	const [value, setValue] = useSyncedState(initialValue ?? "");
 	const cellRef = React.useRef<HTMLDivElement>(null);
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const prevIsEditingRef = React.useRef(false);
 
-	const prevInitialValueRef = React.useRef(initialValue);
-	if (initialValue !== prevInitialValueRef.current) {
-		prevInitialValueRef.current = initialValue;
-		setValue(initialValue ?? "");
+	React.useEffect(() => {
 		if (cellRef.current && !isEditing) {
 			cellRef.current.textContent = initialValue ?? "";
 		}
-	}
+	}, [initialValue, isEditing]);
 
 	const onBlur = React.useCallback(() => {
 		const currentValue = cellRef.current?.textContent?.trim() ?? "";
@@ -770,14 +758,8 @@ export function CheckboxCell<TData>({
 	readOnly,
 }: Omit<DataGridCellProps<TData>, "isEditing">) {
 	const initialValue = cell.getValue() as boolean;
-	const [value, setValue] = React.useState(Boolean(initialValue));
+	const [value, setValue] = useSyncedState(Boolean(initialValue));
 	const containerRef = React.useRef<HTMLDivElement>(null);
-
-	const prevInitialValueRef = React.useRef(initialValue);
-	if (initialValue !== prevInitialValueRef.current) {
-		prevInitialValueRef.current = initialValue;
-		setValue(Boolean(initialValue));
-	}
 
 	const onCheckedChange = React.useCallback(
 		(checked: boolean) => {
@@ -881,24 +863,14 @@ export function SelectCell<TData>({
 	isActiveSearchMatch,
 	readOnly,
 }: DataGridCellProps<TData>) {
-	const initialValue = cell.getValue() as string;
-	const [value, setValue] = React.useState(initialValue);
+	const initialValue = normalizeSelectValue(cell.getValue());
+	const [value, setValue] = useSyncedState(initialValue);
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const cellOpts = cell.column.columnDef.meta?.cell;
 	const options = React.useMemo(
 		() => (cellOpts?.variant === "select" ? cellOpts.options : []),
 		[cellOpts],
 	);
-	const optionByValue = React.useMemo(
-		() => new Map(options.map((option) => [option.value, option])),
-		[options],
-	);
-
-	const prevInitialValueRef = React.useRef(initialValue);
-	if (initialValue !== prevInitialValueRef.current) {
-		prevInitialValueRef.current = initialValue;
-		setValue(initialValue);
-	}
 
 	const onValueChange = React.useCallback(
 		(newValue: string) => {
@@ -937,7 +909,7 @@ export function SelectCell<TData>({
 		[isEditing, isFocused, initialValue, tableMeta],
 	);
 
-	const displayLabel = optionByValue.get(value)?.label ?? value;
+	const displayLabel = getSelectOptionLabel(value, options);
 
 	return (
 		<DataGridCellWrapper<TData>
@@ -1019,16 +991,26 @@ export function MultiSelectCell<TData>({
 	readOnly,
 }: DataGridCellProps<TData>) {
 	const cellValue = React.useMemo(() => {
-		const value = cell.getValue() as string[];
-		return value ?? [];
+		const value = cell.getValue();
+		if (!Array.isArray(value)) return [];
+		return value.map((item) => normalizeSelectValue(item));
 	}, [cell]);
 
 	const cellKey = getCellKey(rowIndex, columnId);
-	const prevCellKeyRef = React.useRef(cellKey);
 
-	const [selectedValues, setSelectedValues] =
-		React.useState<string[]>(cellValue);
-	const [searchValue, setSearchValue] = React.useState("");
+	const [selectedValues, setSelectedValues] = useSyncedState(cellValue);
+	const [searchState, setSearchState] = React.useState({
+		cellKey,
+		value: "",
+	});
+	const searchValue =
+		searchState.cellKey === cellKey ? searchState.value : "";
+	const setSearchValue = React.useCallback(
+		(value: string) => {
+			setSearchState({ cellKey, value });
+		},
+		[cellKey],
+	);
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const inputRef = React.useRef<HTMLInputElement>(null);
 	const cellOpts = cell.column.columnDef.meta?.cell;
@@ -1036,22 +1018,7 @@ export function MultiSelectCell<TData>({
 		() => (cellOpts?.variant === "multi-select" ? cellOpts.options : []),
 		[cellOpts],
 	);
-	const optionByValue = React.useMemo(
-		() => new Map(options.map((option) => [option.value, option])),
-		[options],
-	);
-	const sideOffset = -(containerRef.current?.clientHeight ?? 0);
-
-	const prevCellValueRef = React.useRef(cellValue);
-	if (cellValue !== prevCellValueRef.current) {
-		prevCellValueRef.current = cellValue;
-		setSelectedValues(cellValue);
-	}
-
-	if (prevCellKeyRef.current !== cellKey) {
-		prevCellKeyRef.current = cellKey;
-		setSearchValue("");
-	}
+	const sideOffset = useContainerSideOffset(containerRef);
 
 	const onValueChange = React.useCallback(
 		(value: string) => {
@@ -1159,7 +1126,7 @@ export function MultiSelectCell<TData>({
 	);
 
 	const displayLabels = selectedValues
-		.map((val) => optionByValue.get(val)?.label ?? val)
+		.map((val) => getSelectOptionLabel(val, options))
 		.filter(Boolean);
 
 	const selectedValuesSet = React.useMemo(
@@ -1208,7 +1175,7 @@ export function MultiSelectCell<TData>({
 						<Command className="**:data-[slot=command-input-wrapper]:h-auto **:data-[slot=command-input-wrapper]:border-none **:data-[slot=command-input-wrapper]:p-0 [&_[data-slot=command-input-wrapper]_svg]:hidden">
 							<div className="flex min-h-9 flex-wrap items-center gap-1 border-b px-3 py-1.5">
 								{selectedValues.map((value) => {
-									const label = optionByValue.get(value)?.label ?? value;
+									const label = getSelectOptionLabel(value, options);
 
 									return (
 										<Badge
@@ -1323,14 +1290,10 @@ export function DateCell<TData>({
 	readOnly,
 }: DataGridCellProps<TData>) {
 	const initialValue = cell.getValue() as string;
-	const [value, setValue] = React.useState(initialValue ?? "");
+	const [value, setValue] = useSyncedState(initialValue ?? "");
 	const containerRef = React.useRef<HTMLDivElement>(null);
-
-	const prevInitialValueRef = React.useRef(initialValue);
-	if (initialValue !== prevInitialValueRef.current) {
-		prevInitialValueRef.current = initialValue;
-		setValue(initialValue ?? "");
-	}
+	const cellOpts = cell.column.columnDef.meta?.cell;
+	const includeTime = cellOpts?.variant === "datetime";
 
 	// Parse date as local time to avoid timezone shifts
 	const selectedDate = value ? (parseLocalDate(value) ?? undefined) : undefined;
@@ -1394,7 +1357,7 @@ export function DateCell<TData>({
 			<Popover open={isEditing} onOpenChange={onOpenChange}>
 				<PopoverAnchor asChild>
 					<span data-slot="grid-cell-content">
-						{formatDateForDisplay(value)}
+						{formatDateForDisplay(value, { includeTime })}
 					</span>
 				</PopoverAnchor>
 				{isEditing && (
@@ -1438,12 +1401,11 @@ export function FileCell<TData>({
 	);
 
 	const cellKey = getCellKey(rowIndex, columnId);
-	const prevCellKeyRef = React.useRef(cellKey);
 
 	const labelId = React.useId();
 	const descriptionId = React.useId();
 
-	const [files, setFiles] = React.useState<FileCellData[]>(cellValue);
+	const [files, setFiles] = useSyncedState(cellValue);
 	const [uploadingFiles, setUploadingFiles] = React.useState<Set<string>>(
 		new Set(),
 	);
@@ -1452,7 +1414,18 @@ export function FileCell<TData>({
 	);
 	const [isDraggingOver, setIsDraggingOver] = React.useState(false);
 	const [isDragging, setIsDragging] = React.useState(false);
-	const [error, setError] = React.useState<string | null>(null);
+	const [errorState, setErrorState] = React.useState<{
+		cellKey: string;
+		message: string | null;
+	}>({ cellKey, message: null });
+	const error =
+		errorState.cellKey === cellKey ? errorState.message : null;
+	const setError = React.useCallback(
+		(message: string | null) => {
+			setErrorState({ cellKey, message });
+		},
+		[cellKey],
+	);
 
 	const isUploading = uploadingFiles.size > 0;
 	const isDeleting = deletingFiles.size > 0;
@@ -1461,7 +1434,7 @@ export function FileCell<TData>({
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
 	const dropzoneRef = React.useRef<HTMLDivElement>(null);
 	const cellOpts = cell.column.columnDef.meta?.cell;
-	const sideOffset = -(containerRef.current?.clientHeight ?? 0);
+	const sideOffset = useContainerSideOffset(containerRef);
 
 	const fileCellOpts = cellOpts?.variant === "file" ? cellOpts : null;
 	const maxFileSize = fileCellOpts?.maxFileSize ?? 10 * 1024 * 1024;
@@ -1474,22 +1447,15 @@ export function FileCell<TData>({
 		[accept],
 	);
 
-	const prevCellValueRef = React.useRef(cellValue);
-	if (cellValue !== prevCellValueRef.current) {
-		prevCellValueRef.current = cellValue;
-		for (const file of files) {
-			if (file.url) {
-				URL.revokeObjectURL(file.url);
+	React.useEffect(() => {
+		return () => {
+			for (const file of files) {
+				if (file.url) {
+					URL.revokeObjectURL(file.url);
+				}
 			}
-		}
-		setFiles(cellValue);
-		setError(null);
-	}
-
-	if (prevCellKeyRef.current !== cellKey) {
-		prevCellKeyRef.current = cellKey;
-		setError(null);
-	}
+		};
+	}, [files]);
 
 	const validateFile = React.useCallback(
 		(file: File): string | null => {
@@ -1582,7 +1548,7 @@ export function FileCell<TData>({
 					const filesWithTemp = [...files, ...tempFiles];
 					setFiles(filesWithTemp);
 
-					const uploadingIds = new Set(tempFiles.map((f) => f.id));
+					const uploadingIds = new Set<string>(tempFiles.map((f) => f.id));
 					setUploadingFiles(uploadingIds);
 
 					let uploadedFiles: FileCellData[] = [];

@@ -168,12 +168,7 @@ export const todoColumns: ColumnDef<Zap_todo1s, unknown>[] = [
 		enableSorting: true,
 		meta: {
 			label: "Created On",
-			cell: { variant: "date" },
-		},
-		cell: ({ row }) => {
-			const value = row.getValue("createdon") as string | undefined;
-			if (!value) return null;
-			return new Date(value).toLocaleDateString();
+			cell: { variant: "datetime" },
 		},
 		filterFn: getFilterFn(),
 	},
@@ -185,12 +180,7 @@ export const todoColumns: ColumnDef<Zap_todo1s, unknown>[] = [
 		enableSorting: true,
 		meta: {
 			label: "Modified On",
-			cell: { variant: "date" },
-		},
-		cell: ({ row }) => {
-			const value = row.getValue("modifiedon") as string | undefined;
-			if (!value) return null;
-			return new Date(value).toLocaleDateString();
+			cell: { variant: "datetime" },
 		},
 		filterFn: getFilterFn(),
 	},

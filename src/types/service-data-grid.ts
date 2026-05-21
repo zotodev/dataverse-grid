@@ -1,7 +1,7 @@
+import type { IOperationResult } from "@microsoft/power-apps/data";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { IGetAllOptions } from "@/generated/models/CommonModels";
-import type { IOperationResult } from "@microsoft/power-apps/data";
 
 /**
  * The interface any generated Power Platform service must satisfy
@@ -32,4 +32,6 @@ export interface ServiceDataGridConfig<T> {
 	idField: keyof T & string;
 	/** When true, disables all editing interactions. Default: true */
 	readOnly?: boolean;
+	/** When true, prepends a checkbox column for row selection. Default: true */
+	enableRowSelection?: boolean;
 }

@@ -663,7 +663,7 @@ function DataGridFilterInput<TData>({
     );
   }
 
-  if (variant === "date") {
+  if (variant === "date" || variant === "datetime") {
     const inputListboxId = `${inputId}-listbox`;
 
     if (isBetween) {

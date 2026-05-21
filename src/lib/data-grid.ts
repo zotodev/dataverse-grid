@@ -49,15 +49,33 @@ export function getIsFileCellData(item: unknown): item is FileCellData {
   );
 }
 
+/** Coerce picklist / option-set values (often numbers) to string option keys. */
+export function normalizeSelectValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+export function getSelectOptionLabel(
+  value: unknown,
+  options: { value: string; label: string }[],
+): string {
+  const normalized = normalizeSelectValue(value);
+  if (!normalized) return "";
+  return options.find((option) => option.value === normalized)?.label ?? normalized;
+}
+
 export function matchSelectOption(
-  value: string,
+  value: string | number,
   options: { value: string; label: string }[],
 ): string | undefined {
+  const normalizedValue = normalizeSelectValue(value);
+  if (!normalizedValue) return undefined;
+
   return options.find(
     (o) =>
-      o.value === value ||
-      o.value.toLowerCase() === value.toLowerCase() ||
-      o.label.toLowerCase() === value.toLowerCase(),
+      o.value === normalizedValue ||
+      o.value.toLowerCase() === normalizedValue.toLowerCase() ||
+      o.label.toLowerCase() === normalizedValue.toLowerCase(),
   )?.value;
 }
 
@@ -400,6 +418,8 @@ export function getColumnVariant(variant?: CellOpts["variant"]): {
       return { label: "Multi-select", icon: ListChecksIcon };
     case "date":
       return { label: "Date", icon: CalendarIcon };
+    case "datetime":
+      return { label: "Date & time", icon: CalendarIcon };
     case "file":
       return { label: "File", icon: FileIcon };
     default:
@@ -411,7 +431,9 @@ export function getEmptyCellValue(
   variant: CellOpts["variant"] | undefined,
 ): unknown {
   if (variant === "multi-select" || variant === "file") return [];
-  if (variant === "number" || variant === "date") return null;
+  if (variant === "number" || variant === "date" || variant === "datetime") {
+    return null;
+  }
   if (variant === "checkbox") return false;
   return "";
 }
@@ -433,22 +455,52 @@ export function getUrlHref(urlString: string): string {
   return `http://${trimmed}`;
 }
 
-export function parseLocalDate(dateStr: unknown): Date | null {
+/** Parse date-only, ISO datetime, Date, or timestamp values from OData / Dataverse. */
+export function parseDateValue(dateStr: unknown): Date | null {
   if (!dateStr) return null;
-  if (dateStr instanceof Date) return dateStr;
-  if (typeof dateStr !== "string") return null;
-  const [year, month, day] = dateStr.split("-").map(Number);
-  if (!year || !month || !day) return null;
-  const date = new Date(year, month - 1, day);
-  // Verify date wasn't auto-corrected (e.g. Feb 30 -> Mar 1)
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
-    return null;
+  if (dateStr instanceof Date) {
+    return Number.isNaN(dateStr.getTime()) ? null : dateStr;
   }
-  return date;
+  if (typeof dateStr === "number") {
+    const date = new Date(dateStr);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof dateStr !== "string") return null;
+
+  const trimmed = dateStr.trim();
+  if (!trimmed) return null;
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const month = Number(dateOnlyMatch[2]);
+    const day = Number(dateOnlyMatch[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+    return date;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/** Whether the raw value includes a time component (ISO datetime). */
+export function dateValueHasTime(dateStr: unknown): boolean {
+  if (typeof dateStr !== "string") return false;
+  return /T\d{2}:\d{2}/.test(dateStr.trim());
+}
+
+/** Parse to local calendar date (strips time) for date pickers. */
+export function parseLocalDate(dateStr: unknown): Date | null {
+  const date = parseDateValue(dateStr);
+  if (!date) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 export function formatDateToString(date: Date): string {
@@ -458,11 +510,31 @@ export function formatDateToString(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function formatDateForDisplay(dateStr: unknown): string {
+export function formatDateForDisplay(
+  dateStr: unknown,
+  options?: { includeTime?: boolean },
+): string {
   if (!dateStr) return "";
-  const date = parseLocalDate(dateStr);
+  const date = parseDateValue(dateStr);
   if (!date) return typeof dateStr === "string" ? dateStr : "";
-  return date.toLocaleDateString();
+
+  const includeTime = options?.includeTime ?? dateValueHasTime(dateStr);
+
+  if (includeTime) {
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function formatFileSize(bytes: number): string {

@@ -258,8 +258,8 @@ function DataGridRowImpl<TData>({
             tabIndex={-1}
             className={cn({
               grow: stretchColumns && columnId !== "select",
-              "border-e": showEndBorder && columnId !== "select",
-              "border-s": showStartBorder && columnId !== "select",
+              "border-e": showEndBorder,
+              "border-s": showStartBorder,
             })}
             style={{
               ...getColumnPinningStyle({ column: cell.column, dir }),

@@ -832,7 +832,8 @@ function useDataGrid<TData>({
                 break;
               }
 
-              case "date": {
+              case "date":
+              case "datetime": {
                 if (!pastedValue) {
                   processedValue = null;
                 } else {

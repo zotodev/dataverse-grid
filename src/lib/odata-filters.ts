@@ -71,7 +71,7 @@ function filterToOData(
 
 	// Determine if this is a numeric or date column
 	const isNumeric = variant === "number";
-	const isDate = variant === "date";
+	const isDate = variant === "date" || variant === "datetime";
 
 	// Format the value based on type
 	const formatValue = (v: string | number | string[]): string => {

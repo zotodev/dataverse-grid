@@ -2,6 +2,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 
+import { getDataGridSelectColumn } from "@/components/data-grid/data-grid-select-column";
 import { useDataGrid } from "@/hooks/use-data-grid";
 import { filtersToOData, sortingToOData } from "@/lib/odata-filters";
 import type { ServiceDataGridConfig } from "@/types/service-data-grid";
@@ -27,6 +28,7 @@ export function useServiceDataGrid<T>(config: ServiceDataGridConfig<T>) {
 		pageSize = DEFAULT_PAGE_SIZE,
 		idField,
 		readOnly = true,
+		enableRowSelection = true,
 	} = config;
 
 	// ─── State for server-side sorting and filtering ───
@@ -99,10 +101,18 @@ export function useServiceDataGrid<T>(config: ServiceDataGridConfig<T>) {
 		return firstPage?.count ?? undefined;
 	}, [query.data]);
 
+	// ─── Prepend select column when enabled ───
+	const tableColumns = useMemo(() => {
+		if (!enableRowSelection) return columns;
+		if (columns.some((column) => column.id === "select")) return columns;
+		return [getDataGridSelectColumn<T>({ readOnly: false }), ...columns];
+	}, [columns, enableRowSelection]);
+
 	// ─── Wire into DiceUI useDataGrid ───
 	const dataGrid = useDataGrid<T>({
 		data,
-		columns,
+		columns: tableColumns,
+		enableRowSelection,
 		state: {
 			sorting,
 			columnFilters,

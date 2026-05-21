@@ -39,6 +39,9 @@ export type CellOpts =
       variant: "date";
     }
   | {
+      variant: "datetime";
+    }
+  | {
       variant: "url";
     }
   | {

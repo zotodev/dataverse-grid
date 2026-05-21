@@ -27,6 +27,8 @@ export function ServiceDataGridToolbar<TData>({
 	isFetchingNextPage,
 	className,
 }: ServiceDataGridToolbarProps<TData>) {
+	const selectedRowCount = table.getFilteredSelectedRowModel().rows.length;
+
 	return (
 		<div
 			data-slot="service-grid-toolbar"
@@ -52,6 +54,11 @@ export function ServiceDataGridToolbar<TData>({
 
 			{/* Record count + loading indicator */}
 			<div className="flex items-center gap-2 text-sm text-muted-foreground">
+				{selectedRowCount > 0 && (
+					<Badge variant="secondary" className="text-xs font-normal">
+						{selectedRowCount.toLocaleString()} selected
+					</Badge>
+				)}
 				{(isLoading || isFetchingNextPage) && (
 					<Loader2 className="size-3.5 animate-spin" />
 				)}

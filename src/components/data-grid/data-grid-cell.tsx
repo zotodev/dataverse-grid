@@ -86,6 +86,7 @@ function DataGridCellImpl<TData>({
 			Comp = MultiSelectCell;
 			break;
 		case "date":
+		case "datetime":
 			Comp = DateCell;
 			break;
 		case "file":

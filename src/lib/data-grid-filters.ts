@@ -78,6 +78,7 @@ export function getDefaultOperator(variant: string): FilterOperator {
     case "number":
       return "equals";
     case "date":
+    case "datetime":
       return "equals";
     case "select":
     case "multi-select":
@@ -97,6 +98,7 @@ export function getOperatorsForVariant(variant: string): ReadonlyArray<{
     case "number":
       return NUMBER_FILTER_OPERATORS;
     case "date":
+    case "datetime":
       return DATE_FILTER_OPERATORS;
     case "select":
     case "multi-select":

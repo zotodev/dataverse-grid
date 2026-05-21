@@ -165,7 +165,11 @@ function ContextMenuImpl<TData>({
       let emptyValue: unknown = "";
       if (cellVariant === "multi-select" || cellVariant === "file") {
         emptyValue = [];
-      } else if (cellVariant === "number" || cellVariant === "date") {
+      } else if (
+        cellVariant === "number" ||
+        cellVariant === "date" ||
+        cellVariant === "datetime"
+      ) {
         emptyValue = null;
       } else if (cellVariant === "checkbox") {
         emptyValue = false;
