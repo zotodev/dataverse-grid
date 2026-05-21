@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Lock, RotateCw } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import ThemeToggle from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 export function Header() {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const router = useRouter();
 	const queryClient = useQueryClient();
 
 	const [addressInput, setAddressInput] = React.useState(location.pathname);
@@ -41,14 +41,18 @@ export function Header() {
 		}
 	};
 
-	const triggerReload = () => {
+	const triggerReload = async () => {
 		setIsPending(true);
-		queryClient.invalidateQueries().catch((err) => {
-			console.error("Error invalidating queries:", err);
-		});
-		router.invalidate();
-		// Simulate loading animation finish
-		setTimeout(() => setIsPending(false), 500);
+		try {
+			await queryClient.invalidateQueries();
+			window.location.reload();
+		} catch (err) {
+			setIsPending(false);
+			toast.error("Failed to reload page", {
+				description:
+					err instanceof Error ? err.message : "Could not invalidate cached data.",
+			});
+		}
 	};
 
 	return (
