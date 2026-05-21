@@ -1,6 +1,7 @@
 import { investmentColumns } from "@/components/data-grid/columns/investment-columns";
 import { ServiceDataGrid } from "@/components/data-grid/ServiceDataGrid";
 import { GridModeToggle } from "@/components/GridModeToggle";
+import type { Zap_investmentrecords } from "@/generated/models/Zap_investmentrecordsModel";
 import { Zap_investmentrecordsService } from "@/generated/services/Zap_investmentrecordsService";
 
 interface InvestmentRecordsPageProps {
@@ -13,7 +14,7 @@ export function InvestmentRecordsPage({
 	return (
 		<div className="flex-1 p-6 flex flex-col gap-4 min-h-0">
 			<GridModeToggle />
-			<ServiceDataGrid
+			<ServiceDataGrid<Zap_investmentrecords>
 				config={{
 					queryKey: readOnly ? "investments" : "investments-editable",
 					service: Zap_investmentrecordsService,
