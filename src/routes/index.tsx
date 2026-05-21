@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")(  {
 
 function HomePage() {
 	return (
-		<div className="flex-1 p-6 flex flex-col gap-4">
+		<div className="flex-1 p-6 flex flex-col gap-4 min-h-0">
 			<ServiceDataGrid
 				config={{
 					queryKey: "investments",
@@ -19,7 +19,6 @@ function HomePage() {
 					idField: "zap_investmentrecordid",
 					defaultSort: [{ id: "createdon", desc: true }],
 				}}
-				height={600}
 			/>
 		</div>
 	);

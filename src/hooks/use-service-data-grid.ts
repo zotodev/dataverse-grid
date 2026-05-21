@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { ColumnFiltersState, SortingState } from "@tanstack/react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useDataGrid } from "@/hooks/use-data-grid";
 import { filtersToOData, sortingToOData } from "@/lib/odata-filters";
@@ -99,26 +99,6 @@ export function useServiceDataGrid<T>(config: ServiceDataGridConfig<T>) {
 		return firstPage?.count ?? undefined;
 	}, [query.data]);
 
-	// ─── Scroll handler for infinite scroll (called from grid's scroll event) ───
-	const onGridScroll = useCallback(
-		(event: React.UIEvent<HTMLDivElement>) => {
-			if (!query.hasNextPage || query.isFetchingNextPage) return;
-
-			const target = event.currentTarget;
-			const scrollBottom =
-				target.scrollHeight - target.scrollTop - target.clientHeight;
-
-			// Fetch next page when within 300px of bottom
-			if (scrollBottom < 300) {
-				console.log(
-					`[ServiceDataGrid] Scroll threshold reached for "${queryKey}", fetching next page`,
-				);
-				query.fetchNextPage();
-			}
-		},
-		[query, queryKey],
-	);
-
 	// ─── Wire into DiceUI useDataGrid ───
 	const dataGrid = useDataGrid<T>({
 		data,
@@ -146,7 +126,6 @@ export function useServiceDataGrid<T>(config: ServiceDataGridConfig<T>) {
 		totalCount,
 
 		// Infinite scroll
-		onGridScroll,
 		hasNextPage: query.hasNextPage,
 		fetchNextPage: query.fetchNextPage,
 		isFetchingNextPage: query.isFetchingNextPage,

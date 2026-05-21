@@ -26,6 +26,7 @@ interface DataGridProps<TData>
 	dir?: Direction;
 	height?: number;
 	stretchColumns?: boolean;
+	sentinelRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function DataGrid<TData>({
@@ -51,8 +52,9 @@ export function DataGrid<TData>({
 	contextMenu,
 	pasteDialog,
 	onRowAdd: onRowAddProp,
-	height = 600,
+	height,
 	stretchColumns = false,
+	sentinelRef,
 	adjustLayout = false,
 	className,
 	...props
@@ -112,10 +114,13 @@ export function DataGrid<TData>({
 				data-slot="grid"
 				tabIndex={0}
 				ref={dataGridRef}
-				className="relative grid select-none overflow-auto rounded-md border focus:outline-none"
+				className={cn(
+					"relative grid select-none overflow-auto rounded-md border focus:outline-none",
+					!height && "flex-1 min-h-0",
+				)}
 				style={{
 					...columnSizeVars,
-					maxHeight: `${height}px`,
+					...(height ? { maxHeight: `${height}px` } : {}),
 				}}
 				onContextMenu={onDataGridContextMenu}
 			>
@@ -242,6 +247,18 @@ export function DataGrid<TData>({
 							/>
 						);
 					})}
+					{sentinelRef && (
+						<div
+							ref={sentinelRef}
+							aria-hidden
+							style={{
+								position: "absolute",
+								top: `${virtualTotalSize}px`,
+								height: 1,
+								width: "100%",
+							}}
+						/>
+					)}
 				</div>
 				{!readOnly && onRowAddProp && (
 					<div

@@ -15,70 +15,51 @@ import { cn } from "@/lib/utils";
 import type { ServiceDataGridConfig } from "@/types/service-data-grid";
 
 interface ServiceDataGridProps<T> {
-	/** Configuration for which service/columns to use */
 	config: ServiceDataGridConfig<T>;
-	/** Height in pixels for the virtualized grid area. Default: 600 */
-	height?: number;
-	/** Additional CSS class for the wrapper */
 	className?: string;
 }
 
-/**
- * A reusable, service-agnostic data grid component.
- *
- * Connects any Power Platform generated service to the DiceUI DataGrid
- * with infinite scroll, server-side sorting, and server-side filtering.
- *
- * @example
- *   <ServiceDataGrid
- *     config={{
- *       queryKey: 'todos',
- *       service: Zap_todo1sService,
- *       columns: todoColumns,
- *       idField: 'zap_todo1id',
- *     }}
- *   />
- */
 export function ServiceDataGrid<T>({
 	config,
-	height = 600,
 	className,
 }: ServiceDataGridProps<T>) {
 	const {
 		query,
 		data,
 		totalCount,
-		hasNextPage: _hasNextPage,
-		fetchNextPage: _fetchNextPage,
+		hasNextPage,
+		fetchNextPage,
 		isFetchingNextPage,
 		isLoading,
 		isError,
 		error,
-		onGridScroll,
 		...dataGridProps
 	} = useServiceDataGrid(config);
 
-	// ─── Attach Scroll Listener to the Inner Grid Container ───
+	const sentinelRef = React.useRef<HTMLDivElement>(null);
+
+	// IntersectionObserver on sentinel to trigger fetching next page
 	React.useEffect(() => {
-		const gridElement = dataGridProps.dataGridRef.current;
-		if (!gridElement) return;
+		const sentinel = sentinelRef.current;
+		const root = dataGridProps.dataGridRef.current;
+		if (!sentinel || !root) return;
 
-		const handleScroll = (event: Event) => {
-			onGridScroll(event as unknown as React.UIEvent<HTMLDivElement>);
-		};
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+					fetchNextPage();
+				}
+			},
+			{ root, rootMargin: "0px 0px 300px 0px", threshold: 0 },
+		);
 
-		gridElement.addEventListener("scroll", handleScroll, { passive: true });
-		return () => {
-			gridElement.removeEventListener("scroll", handleScroll);
-		};
-	}, [dataGridProps.dataGridRef, onGridScroll]);
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [dataGridProps.dataGridRef, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-
-
-	// ─── Loading skeleton ───
 	if (isLoading) {
 		return (
-			<div className={cn("flex flex-col gap-2", className)}>
+			<div className={cn("flex flex-1 flex-col gap-2", className)}>
 				<DataGridSkeleton>
 					<DataGridSkeletonToolbar actionCount={4} />
 					<DataGridSkeletonGrid />
@@ -87,7 +68,6 @@ export function ServiceDataGrid<T>({
 		);
 	}
 
-	// ─── Error state ───
 	if (isError) {
 		return (
 			<div
@@ -118,8 +98,7 @@ export function ServiceDataGrid<T>({
 		);
 	}
 
-	// ─── Empty state ───
-	if (data.length === 0 && !_hasNextPage) {
+	if (data.length === 0 && !hasNextPage) {
 		return (
 			<div className={cn("flex flex-col gap-2", className)}>
 				<ServiceDataGridToolbar
@@ -138,8 +117,9 @@ export function ServiceDataGrid<T>({
 	}
 
 	return (
-		<div className={cn("flex flex-col gap-2", className)}>
-			{/* Toolbar */}
+		<div
+			className={cn("flex flex-1 flex-col gap-2 min-h-0", className)}
+		>
 			<ServiceDataGridToolbar
 				table={dataGridProps.table}
 				totalCount={totalCount}
@@ -148,12 +128,12 @@ export function ServiceDataGrid<T>({
 				isFetchingNextPage={isFetchingNextPage}
 			/>
 
-			{/* Data grid */}
-			<DataGrid {...dataGridProps} height={height} />
+			<DataGrid
+				{...dataGridProps}
+				sentinelRef={sentinelRef}
+				className="flex-1 min-h-0"
+			/>
 
-
-
-			{/* Bottom loading indicator */}
 			{isFetchingNextPage && (
 				<div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
 					<Loader2 className="size-4 animate-spin" />

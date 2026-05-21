@@ -19,12 +19,12 @@ export const Route = createRootRouteWithContext<{
 
 function RootLayout() {
 	return (
-		<div className="flex flex-col min-h-screen bg-background text-foreground antialiased selection:bg-primary/20">
+		<div className="flex flex-col h-screen bg-background text-foreground antialiased selection:bg-primary/20">
 			{/* Sticky Chrome-style browser header */}
 			<Header />
 
 			{/* Main viewport */}
-			<main className="flex-1 w-full max-w-full overflow-x-hidden flex flex-col">
+			<main className="flex-1 w-full max-w-full overflow-x-hidden flex flex-col min-h-0">
 				<Outlet />
 
 			</main>
