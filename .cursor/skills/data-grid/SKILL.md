@@ -110,6 +110,55 @@ export function InvestmentRecordsPage({ readOnly = true }: { readOnly?: boolean 
 | `pageSize` | no | `50` | Infinite-scroll page size |
 | `readOnly` | no | `true` | `false` enables in-cell editing + `service.update` |
 | `enableRowSelection` | no | `true` | Prepends checkbox column via `getDataGridSelectColumn` |
+| `initialColumnVisibility` | no | all visible | Hide columns on load — see below |
+| `initialColumnPinning` | no | none pinned | Pin columns left/right on load — see below |
+
+## Initial column visibility
+
+Use `initialColumnVisibility` to hide columns when the grid first loads. Keys are the column `accessorKey` (OData field name); set to `false` to hide.
+
+```tsx
+<ServiceDataGrid<Zap_investmentrecords>
+  config={{
+    queryKey: "investments",
+    service: Zap_investmentrecordsService,
+    columns,
+    idField: "zap_investmentrecordid",
+    initialColumnVisibility: {
+      zap_websiteurl: false,     // hidden on load
+      zap_phonenumber: false,    // hidden on load
+      // omit columns that should be visible — default is visible
+    },
+  }}
+/>
+```
+
+The user can still toggle hidden columns back on via the **View** menu in the toolbar. Omit a column from the map (or set to `true`) to keep it visible.
+
+## Initial column pinning
+
+Use `initialColumnPinning` to pin columns to the left or right edge when the grid first loads.
+
+```tsx
+<ServiceDataGrid<Zap_investmentrecords>
+  config={{
+    queryKey: "investments",
+    service: Zap_investmentrecordsService,
+    columns,
+    idField: "zap_investmentrecordid",
+    initialColumnPinning: {
+      left: ["zap_name"],              // pinned to left
+      right: ["zap_quantity"],         // pinned to right
+    },
+  }}
+/>
+```
+
+Rules:
+- Use the column `accessorKey` (or `id` for columns without one, such as `"select"`)
+- `left` and `right` are both optional arrays; omit either if not needed
+- The `"select"` checkbox column is always pinned left by default — no need to include it
+- Pinned columns stay fixed while the grid scrolls horizontally
 
 ## Column rules
 

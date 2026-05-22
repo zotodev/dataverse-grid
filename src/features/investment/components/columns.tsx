@@ -108,7 +108,7 @@ export const columns: ColumnDef<Zap_investmentrecords, unknown>[] = [
 	{
 		accessorKey: "zap_budgetallocated",
 		header: "Budget",
-		size: 130,
+		size: 200,
 		minSize: 90,
 		meta: {
 			label: "Budget Allocated",

@@ -219,23 +219,27 @@ export function useServiceDataGrid<T extends object>(
 		(newData: T[]) => {
 			if (readOnly || !service.update) return;
 
-			const updates = collectRowUpdates(
-				data,
-				newData,
-				updatableFields,
-				idField,
-			);
-			if (updates.length === 0) return;
+		const updates = collectRowUpdates(
+			data as Record<string, unknown>[],
+			newData as Record<string, unknown>[],
+			updatableFields,
+			idField as string,
+		);
+		if (updates.length === 0) return;
 
-			queryClient.setQueryData(
-				queryKeyFull,
-				(old: InfiniteData<IOperationResult<T[]>> | undefined) =>
-					patchInfiniteQueryCache(old, newData, idField),
-			);
+		queryClient.setQueryData(
+			queryKeyFull,
+			(old: InfiniteData<IOperationResult<T[]>> | undefined) =>
+				patchInfiniteQueryCache(
+					old as InfiniteData<IOperationResult<Record<string, unknown>[]>> | undefined,
+					newData as Record<string, unknown>[],
+					idField as string,
+				) as InfiniteData<IOperationResult<T[]>> | undefined,
+		);
 
-			const updateCount = updates.length;
+		const updateCount = updates.length;
 
-			toast.promise(() => updateMutation.mutateAsync(updates), {
+		toast.promise(() => updateMutation.mutateAsync(updates as RowUpdate<T>[]), {
 				loading: "Saving changes...",
 				success:
 					updateCount === 1
