@@ -160,6 +160,62 @@ Rules:
 - The `"select"` checkbox column is always pinned left by default — no need to include it
 - Pinned columns stay fixed while the grid scrolls horizontally
 
+## Row actions
+
+Pass an `actions` prop to `ServiceDataGrid` to show an **Actions** dropdown in the toolbar whenever rows are selected. The button appears to the left of the Filter button and disappears when nothing is selected.
+
+```tsx
+import type { GridAction } from "@/components/data-grid/ServiceDataGridToolbar";
+
+const actions: GridAction<Zap_investmentrecords>[] = [
+  {
+    label: "Single action",
+    selectionMode: "single",       // only shown when exactly 1 row is selected
+    onAction: (rows, clearSelection) => {
+      console.log("Act on", rows[0]);
+      clearSelection();            // call when you want to reset row selection
+    },
+  },
+  {
+    label: "Multiple action",
+    selectionMode: "multiple",     // only shown when 2+ rows are selected
+    onAction: (rows, clearSelection) => {
+      console.log("Act on", rows.length, "records");
+      clearSelection();
+    },
+  },
+  {
+    label: "Any action",
+    selectionMode: "any",          // shown for any selection (default if omitted)
+    onAction: (rows, clearSelection) => {
+      console.log(rows);
+      // omit clearSelection() call to keep rows selected after the action
+    },
+  },
+];
+
+<ServiceDataGrid<Zap_investmentrecords>
+  title="Active Investment Record"
+  actions={actions}
+  config={{ ... }}
+/>
+```
+
+### `GridAction<TData>` fields
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `label` | yes | Text shown in the dropdown item |
+| `onAction` | yes | Called with `(rows, clearSelection)` — call `clearSelection()` to reset row selection |
+| `selectionMode` | no | `"single"` \| `"multiple"` \| `"any"` (default: `"any"`) |
+
+### Rules
+- Define the `actions` array **outside** the component or with `useMemo` — do not inline it in JSX to avoid unnecessary re-renders
+- `selectionMode: "single"` — action is only visible when exactly 1 row is selected
+- `selectionMode: "multiple"` — action is only visible when 2+ rows are selected
+- `selectionMode: "any"` — action is visible for any non-zero selection (default when omitted)
+- The dropdown uses `modal={false}` and suppresses focus-return so that closing it without selecting an action does **not** clear the row selection
+
 ## Column rules
 
 Every filterable/sortable column needs:

@@ -1,14 +1,37 @@
 "use client";
 
 import type { Table } from "@tanstack/react-table";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 import { DataGridFilterMenu } from "@/components/data-grid/data-grid-filter-menu";
 import { DataGridRowHeightMenu } from "@/components/data-grid/data-grid-row-height-menu";
 import { DataGridSortMenu } from "@/components/data-grid/data-grid-sort-menu";
 import { DataGridViewMenu } from "@/components/data-grid/data-grid-view-menu";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+
+export interface GridAction<TData> {
+	/** Label shown in the dropdown */
+	label: string;
+	/**
+	 * Called with the currently selected rows and a `clearSelection` function.
+	 * Call `clearSelection()` inside your handler to reset row selection after the action.
+	 */
+	onAction: (rows: TData[], clearSelection: () => void) => void;
+	/**
+	 * Controls when this action is visible:
+	 * - "single"   — only when exactly 1 row is selected
+	 * - "multiple" — only when 2+ rows are selected
+	 * - "any"      — whenever 1+ rows are selected (default)
+	 */
+	selectionMode?: "single" | "multiple" | "any";
+}
 
 interface ServiceDataGridToolbarProps<TData> {
 	table: Table<TData>;
@@ -18,6 +41,7 @@ interface ServiceDataGridToolbarProps<TData> {
 	isFetchingNextPage?: boolean;
 	className?: string;
 	title?: string;
+	actions?: GridAction<TData>[];
 }
 
 export function ServiceDataGridToolbar<TData>({
@@ -28,8 +52,19 @@ export function ServiceDataGridToolbar<TData>({
 	isFetchingNextPage,
 	className,
 	title,
+	actions,
 }: ServiceDataGridToolbarProps<TData>) {
-	const selectedRowCount = table.getFilteredSelectedRowModel().rows.length;
+	const selectedRows = table.getFilteredSelectedRowModel().rows;
+	const selectedRowCount = selectedRows.length;
+
+	const visibleActions = actions?.filter((action) => {
+		if (selectedRowCount === 0) return false;
+		if (action.selectionMode === "single") return selectedRowCount === 1;
+		if (action.selectionMode === "multiple") return selectedRowCount > 1;
+		return true; // "any" or undefined
+	});
+
+	const hasActions = visibleActions && visibleActions.length > 0;
 
 	return (
 		<div
@@ -48,13 +83,38 @@ export function ServiceDataGridToolbar<TData>({
 
 			{/* Right: controls + badges */}
 			<div className="flex flex-wrap items-center gap-2">
-				{selectedRowCount > 0 && (
-					<Badge variant="secondary" className="text-xs font-normal">
-						{selectedRowCount.toLocaleString()} selected
-					</Badge>
-				)}
 				{(isLoading || isFetchingNextPage) && (
 					<Loader2 className="size-3.5 animate-spin" />
+				)}
+
+				{/* Actions dropdown — only visible when rows are selected */}
+				{hasActions && (
+					<DropdownMenu modal={false}>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline" size="sm" className="h-8 font-normal">
+								Actions
+								<ChevronDown className="ml-1 size-3.5 text-muted-foreground" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="end"
+							onCloseAutoFocus={(e) => e.preventDefault()}
+						>
+							{visibleActions.map((action) => (
+								<DropdownMenuItem
+									key={action.label}
+									onSelect={() =>
+										action.onAction(
+											selectedRows.map((r) => r.original),
+											() => table.resetRowSelection(),
+										)
+									}
+								>
+									{action.label}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
 				)}
 
 				{/* Filter menu */}

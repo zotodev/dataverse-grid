@@ -9,7 +9,10 @@ import {
 	DataGridSkeletonGrid,
 	DataGridSkeletonToolbar,
 } from "@/components/data-grid/data-grid-skeleton";
-import { ServiceDataGridToolbar } from "@/components/data-grid/ServiceDataGridToolbar";
+import {
+	type GridAction,
+	ServiceDataGridToolbar,
+} from "@/components/data-grid/ServiceDataGridToolbar";
 import { useServiceDataGrid } from "@/hooks/use-service-data-grid";
 import { cn } from "@/lib/utils";
 import type { ServiceDataGridConfig } from "@/types/service-data-grid";
@@ -18,12 +21,14 @@ interface ServiceDataGridProps<T extends object> {
 	config: ServiceDataGridConfig<T>;
 	className?: string;
 	title?: string;
+	actions?: GridAction<T>[];
 }
 
 export function ServiceDataGrid<T extends object>({
 	config,
 	className,
 	title,
+	actions,
 }: ServiceDataGridProps<T>) {
 	const {
 		query,
@@ -104,12 +109,13 @@ export function ServiceDataGrid<T extends object>({
 	if (data.length === 0 && !hasNextPage) {
 		return (
 			<div className={cn("flex flex-col gap-2", className)}>
-				<ServiceDataGridToolbar
-					table={dataGridProps.table}
-					totalCount={totalCount}
-					dataCount={0}
-					title={title}
-				/>
+			<ServiceDataGridToolbar
+				table={dataGridProps.table}
+				totalCount={totalCount}
+				dataCount={0}
+				title={title}
+				actions={actions}
+			/>
 				<div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-12 text-muted-foreground">
 					<p className="text-sm">No records found</p>
 					<p className="text-xs">
@@ -131,6 +137,7 @@ export function ServiceDataGrid<T extends object>({
 			isLoading={isLoading}
 			isFetchingNextPage={isFetchingNextPage}
 			title={title}
+			actions={actions}
 		/>
 
 		<DataGrid
@@ -139,17 +146,27 @@ export function ServiceDataGrid<T extends object>({
 			className="flex-1 min-h-0"
 		/>
 
-		{/* Bottom footer: row count on left, loading indicator on right */}
-		<div className="flex items-center justify-between text-sm text-muted-foreground">
-			<span>
-				Rows:{" "}
-				{isFetchingNextPage
-					? `${data.length.toLocaleString()}…`
-					: data.length.toLocaleString()}
-				{totalCount !== undefined &&
-					totalCount !== data.length &&
-					` of ${totalCount.toLocaleString()}`}
-			</span>
+		{/* Bottom footer: row count on left, selected count + loading on right */}
+		<div data-slot="service-grid-footer" className="flex items-center justify-between text-sm text-muted-foreground">
+			<div className="flex items-center gap-4">
+				<span>
+					Rows:{" "}
+					{isFetchingNextPage
+						? `${data.length.toLocaleString()}…`
+						: data.length.toLocaleString()}
+					{totalCount !== undefined &&
+						totalCount !== data.length &&
+						` of ${totalCount.toLocaleString()}`}
+				</span>
+				{dataGridProps.table.getFilteredSelectedRowModel().rows.length > 0 && (
+					<span>
+						Selected:{" "}
+						{dataGridProps.table
+							.getFilteredSelectedRowModel()
+							.rows.length.toLocaleString()}
+					</span>
+				)}
+			</div>
 			{isFetchingNextPage && (
 				<div className="flex items-center gap-1.5">
 					<Loader2 className="size-3.5 animate-spin" />
